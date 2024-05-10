@@ -1,19 +1,19 @@
 # TODO:
+import docx
+import numpy as np
 import os
 import pandas as pd
-import numpy as np
-from natsort import natsorted
-import docx
 from docx import Document
-from docx.shared import Pt
-from docx.text.paragraph import WD_STYLE_TYPE
-from docx.shared import RGBColor
-from docx.shared import Pt
-from docx.oxml import OxmlElement
-from docx.oxml.ns import qn
 from docx.enum.table import WD_ALIGN_VERTICAL
 from docx.enum.text import WD_COLOR_INDEX
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
 from docx.shared import Pt
+from docx.shared import Pt
+from docx.shared import Pt
+from docx.shared import RGBColor
+from docx.text.paragraph import WD_STYLE_TYPE
+from natsort import natsorted
 
 # Specify location of the tuning tracker
 fp = r"C:/Users/KadamatiV/OneDrive - Crowe LLP/Documents/PROJECTHUB/TM TUNING/TM_Narrative_Codebase_Consolidation/required_processing_data/"
@@ -91,7 +91,6 @@ numbers_df = pd.DataFrame(
 # Create an empty DataFrame with 5 columns
 narratives = pd.DataFrame(columns=range(5))
 
-
 # Begin Iterations --------------------------------------------------------
 # Iterate over Rule IDs, Population Groups, and Parameters
 for x in ruleIDs:
@@ -100,21 +99,23 @@ for x in ruleIDs:
 
     for pop in popGroups:
         data_Rule_Pop = data_Rule[data_Rule["Population Group"] == pop]
-        params = data_Rule_Pop["Parameter"].value_counts().index.tolist()
+        param_types = data_Rule_Pop["Parameter Type"].value_counts().index.tolist()
 
         # Parse date range of alert generation for the rule
         date_range = data_Rule_Pop["Date Range"].iloc[0].split("-")
 
-        for threshold in params:
+        for param_type in param_types:
+            data_Rule_Pop_Param_Type = data_Rule_Pop[
+                data_Rule_Pop["Parameter Type"] == param_type
+                ]
 
-            data_Rule_Pop_Parameter = data_Rule_Pop[
-                data_Rule_Pop["Parameter"] == threshold
-            ]
+            parameter = data_Rule_Pop_Param_Type["Parameter"].iloc[0]
+            param_type_value = data_Rule_Pop_Param_Type["Parameter Type"].iloc[0]
 
             # Summary Paragraph -----------------------------------------------------------------
             # Time frame of alerts that generated; if no alerts generated -> no analysis performed
-            temp = data_Rule_Pop_Parameter["Num Alerts Extracted"].iloc[0]
-            date_range = data_Rule_Pop_Parameter["Date Range"].iloc[0].split("-")
+            temp = data_Rule_Pop_Param_Type["Num Alerts Extracted"].iloc[0]
+            date_range = data_Rule_Pop_Param_Type["Date Range"].iloc[0].split("-")
 
             line_one = ""
             if temp == 0:
@@ -123,47 +124,47 @@ for x in ruleIDs:
                 line_one = f"Alerts generated in the Actimize UAT environment between {date_range[0]} and {date_range[1]} were extracted for review."
 
             # No. of rule breaks generated; wording reflects if there was sampling or data quality alerts present
-            temp = data_Rule_Pop_Parameter["Num Alerts Sampled"].iloc[0]
+            temp = data_Rule_Pop_Param_Type["Num Alerts Sampled"].iloc[0]
 
             line_two = ""
             if temp == 0:
                 pass
             elif (
-                temp == 1
-                and temp == data_Rule_Pop_Parameter["Num Alerts Extracted"].iloc[0]
+                    temp == 1
+                    and temp == data_Rule_Pop_Param_Type["Num Alerts Extracted"].iloc[0]
             ):
                 line_two = f"{numbers_df[numbers_df['numbers'] == str(temp)]['alpha_numbers_cap'].iloc[0]} rule break generated during the testing period, which was reviewed by the Bank for quality."
             elif (
-                temp < 10
-                and temp == data_Rule_Pop_Parameter["Num Alerts Extracted"].iloc[0]
-                and data_Rule_Pop_Parameter["Data Quality Alerts"].iloc[0] == 0
+                    temp < 10
+                    and temp == data_Rule_Pop_Param_Type["Num Alerts Extracted"].iloc[0]
+                    and data_Rule_Pop_Param_Type["Data Quality Alerts"].iloc[0] == 0
             ):
                 line_two = f"{numbers_df[numbers_df['numbers'] == str(temp)]['alpha_numbers_cap'].iloc[0]} rule breaks generated during the testing period, which were reviewed by the Bank for quality and used for analysis."
             elif (
-                temp < 10
-                and temp == data_Rule_Pop_Parameter["Num Alerts Extracted"].iloc[0]
+                    temp < 10
+                    and temp == data_Rule_Pop_Param_Type["Num Alerts Extracted"].iloc[0]
             ):
                 line_two = f"{numbers_df[numbers_df['numbers'] == str(temp)]['alpha_numbers_cap'].iloc[0]} rule breaks generated during the testing period, which were reviewed by the Bank for quality."
             elif (
-                temp == data_Rule_Pop_Parameter["Num Alerts Extracted"].iloc[0]
-                and data_Rule_Pop_Parameter["Data Quality Alerts"].iloc[0] == 0
+                    temp == data_Rule_Pop_Param_Type["Num Alerts Extracted"].iloc[0]
+                    and data_Rule_Pop_Param_Type["Data Quality Alerts"].iloc[0] == 0
             ):
-                line_two = f"{data_Rule_Pop_Parameter['Num Alerts Extracted'].iloc[0]} rule breaks generated during the testing period, which were reviewed by the Bank for quality and used for analysis."
+                line_two = f"{data_Rule_Pop_Param_Type['Num Alerts Extracted'].iloc[0]} rule breaks generated during the testing period, which were reviewed by the Bank for quality and used for analysis."
             elif (
-                temp == data_Rule_Pop_Parameter["Num Alerts Extracted"].iloc[0]
-                and data_Rule_Pop_Parameter["Data Quality Alerts"].iloc[0] != 0
+                    temp == data_Rule_Pop_Param_Type["Num Alerts Extracted"].iloc[0]
+                    and data_Rule_Pop_Param_Type["Data Quality Alerts"].iloc[0] != 0
             ):
-                line_two = f"{data_Rule_Pop_Parameter['Num Alerts Extracted'].iloc[0]} rule breaks generated during the testing period, which were reviewed by the Bank for quality."
+                line_two = f"{data_Rule_Pop_Param_Type['Num Alerts Extracted'].iloc[0]} rule breaks generated during the testing period, which were reviewed by the Bank for quality."
             elif (
-                temp != data_Rule_Pop_Parameter["Num Alerts Extracted"].iloc[0]
-                and data_Rule_Pop_Parameter["Data Quality Alerts"].iloc[0] == 0
+                    temp != data_Rule_Pop_Param_Type["Num Alerts Extracted"].iloc[0]
+                    and data_Rule_Pop_Param_Type["Data Quality Alerts"].iloc[0] == 0
             ):
-                line_two = f"{data_Rule_Pop_Parameter['Num Alerts Extracted'].iloc[0]:,} rule breaks generated during the testing period, which were subsequently sampled using the standard methodology. The {temp} sampled rule breaks were then reviewed by the Bank for quality and used for analysis."
-            elif temp != data_Rule_Pop_Parameter["Num Alerts Extracted"].iloc[0]:
-                line_two = f"{data_Rule_Pop_Parameter['Num Alerts Extracted'].iloc[0]:,} rule breaks generated during the testing period, which were subsequently sampled using the standard methodology. The {temp} sampled rule breaks were then reviewed by the Bank for quality."
+                line_two = f"{data_Rule_Pop_Param_Type['Num Alerts Extracted'].iloc[0]:,} rule breaks generated during the testing period, which were subsequently sampled using the standard methodology. The {temp} sampled rule breaks were then reviewed by the Bank for quality and used for analysis."
+            elif temp != data_Rule_Pop_Param_Type["Num Alerts Extracted"].iloc[0]:
+                line_two = f"{data_Rule_Pop_Param_Type['Num Alerts Extracted'].iloc[0]:,} rule breaks generated during the testing period, which were subsequently sampled using the standard methodology. The {temp} sampled rule breaks were then reviewed by the Bank for quality."
 
             # Data quality alerts identified, if any
-            temp = data_Rule_Pop_Parameter["Data Quality Alerts"].iloc[0]
+            temp = data_Rule_Pop_Param_Type["Data Quality Alerts"].iloc[0]
 
             line_three = ""
             if temp == 0:
@@ -177,33 +178,33 @@ for x in ruleIDs:
 
             # Reflects sampled rules used for analysis (excluding data quality)
             temp = (
-                data_Rule_Pop_Parameter["Num Alerts Sampled"].iloc[0]
-                - data_Rule_Pop_Parameter["Data Quality Alerts"].iloc[0]
+                    data_Rule_Pop_Param_Type["Num Alerts Sampled"].iloc[0]
+                    - data_Rule_Pop_Param_Type["Data Quality Alerts"].iloc[0]
             )
 
             line_four = ""
-            if temp == 0 or data_Rule_Pop_Parameter["Data Quality Alerts"].iloc[0] == 0:
+            if temp == 0 or data_Rule_Pop_Param_Type["Data Quality Alerts"].iloc[0] == 0:
                 pass
             elif (
-                temp < 10
-                and temp != data_Rule_Pop_Parameter["Num Alerts Sampled"].iloc[0]
+                    temp < 10
+                    and temp != data_Rule_Pop_Param_Type["Num Alerts Sampled"].iloc[0]
             ):
                 line_four = f"The remaining {numbers_df[numbers_df['numbers'] == str(temp)]['alpha_numbers'].iloc[0]} sampled rule breaks were used for analysis."
             elif (
-                temp >= 10
-                and temp != data_Rule_Pop_Parameter["Num Alerts Sampled"].iloc[0]
+                    temp >= 10
+                    and temp != data_Rule_Pop_Param_Type["Num Alerts Sampled"].iloc[0]
             ):
                 line_four = (
                     f"The remaining {temp} sampled rule breaks were used for analysis."
                 )
             elif (
-                temp < 10
-                and data_Rule_Pop_Parameter["Num Alerts Extracted"].iloc[0] <= 100
+                    temp < 10
+                    and data_Rule_Pop_Param_Type["Num Alerts Extracted"].iloc[0] <= 100
             ):
                 line_four = f"{numbers_df[numbers_df['numbers'] == str(temp)]['alpha_numbers_cap'].iloc[0]} rule breaks were used for analysis."
             elif (
-                temp >= 10
-                and data_Rule_Pop_Parameter["Num Alerts Extracted"].iloc[0] <= 100
+                    temp >= 10
+                    and data_Rule_Pop_Param_Type["Num Alerts Extracted"].iloc[0] <= 100
             ):
                 line_four = f"{temp} rule breaks were used for analysis."
             elif temp < 10:
@@ -213,127 +214,129 @@ for x in ruleIDs:
 
             # Analysis Paragraph ----------------------------------------------------------------
             # Interrupt loop if parameter is not tunable
-            is_tunable = data_Rule_Pop_Parameter["Is Tunable"].iloc[0]
+            is_tunable = data_Rule_Pop_Param_Type["Is Tunable"].iloc[0]
             if is_tunable == "No":
                 continue
 
             # Threshold tuned and value
-            temp_lowered = data_Rule_Pop_Parameter["BTL Threshold"].iloc[0]
+            temp_lowered = data_Rule_Pop_Param_Type["BTL Threshold"].iloc[0]
 
-            if threshold in currencyF:
+            if param_type_value in currencyF:
                 temp_lowered_formatted = f"${temp_lowered:,.2f}"
-            elif threshold in numberF:
+            elif param_type_value in numberF:
                 if temp_lowered < 10:
                     temp_lowered_formatted = numbers_df[
                         numbers_df["numbers"] == str(int(temp_lowered))
-                    ]["alpha_numbers"].iloc[0]
+                        ]["alpha_numbers"].iloc[0]
                 else:
                     temp_lowered_formatted = f"{temp_lowered:,}"
-            elif threshold in percentF:
+            elif param_type_value in percentF:
                 temp_lowered_formatted = f"{temp_lowered:.7f}%"
-            elif threshold in decimalF:
+            elif param_type_value in decimalF:
                 temp_lowered_formatted = f"{temp_lowered:.7f}"
             else:
                 temp_lowered_formatted = str(temp_lowered)
 
-            temp_original = data_Rule_Pop_Parameter["Current Threshold"].iloc[0]
+            temp_original = data_Rule_Pop_Param_Type["Current Threshold"].iloc[0]
 
-            if threshold in currencyF:
+            if param_type_value in currencyF:
                 temp_original_formatted = f"${temp_original:,.2f}"
-            elif threshold in numberF:
+            elif param_type_value in numberF:
                 if temp_original < 10:
                     temp_original_formatted = numbers_df[
                         numbers_df["numbers"] == str(int(temp_original))
-                    ]["alpha_numbers"].iloc[0]
+                        ]["alpha_numbers"].iloc[0]
                 else:
                     temp_original_formatted = f"{temp_original:,}"
-            elif threshold in percentF:
+            elif param_type_value in percentF:
                 temp_original_formatted = f"{temp_original:.7f}%"
-            elif threshold in decimalF:
+            elif param_type_value in decimalF:
                 temp_original_formatted = f"{temp_original:.7f}"
             else:
                 temp_original_formatted = str(temp_original)
 
             line_five = ""
-            if data_Rule_Pop_Parameter["Num Alerts Extracted"].iloc[0] == 0:
+            if data_Rule_Pop_Param_Type["Num Alerts Extracted"].iloc[0] == 0:
                 pass
-            elif data_Rule_Pop_Parameter["Num Alerts Extracted"].iloc[0] > 0:
-                line_five = f"Production below-the-line calibration was conducted on the {threshold} threshold, which was lowered from the production value of {temp_original_formatted} to the below-the-line testing value of {temp_lowered_formatted}."
+            elif data_Rule_Pop_Param_Type["Num Alerts Extracted"].iloc[0] > 0:
+                line_five = f"Production below-the-line calibration was conducted on the {parameter} threshold, which was lowered from the production value of {temp_original_formatted} to the below-the-line testing value of {temp_lowered_formatted}."
 
             # Values that rule breaks generated at
             temp = (
-                data_Rule_Pop_Parameter["Max Val"].iloc[0]
-                - data_Rule_Pop_Parameter["Min Val"].iloc[0]
+                    data_Rule_Pop_Param_Type["Max Val"].iloc[0]
+                    - data_Rule_Pop_Param_Type["Min Val"].iloc[0]
             )
 
-            if threshold in currencyF:
+            if param_type_value in currencyF:
                 val_formatted = (
-                    f"${data_Rule_Pop_Parameter['Min Val'].iloc[0]:,.2f}",
-                    f"${data_Rule_Pop_Parameter['Max Val'].iloc[0]:,.2f}",
+                    f"${data_Rule_Pop_Param_Type['Min Val'].iloc[0]:,.2f}",
+                    f"${data_Rule_Pop_Param_Type['Max Val'].iloc[0]:,.2f}",
                 )
-            elif threshold in numberF:
-                if np.isnan(data_Rule_Pop_Parameter["Max Val"].iloc[0]):
+            elif param_type_value in numberF:
+                if np.isnan(data_Rule_Pop_Param_Type["Max Val"].iloc[0]):
                     val_formatted = ("0", "0")
-                elif data_Rule_Pop_Parameter["Max Val"].iloc[0] < 10:
+                elif data_Rule_Pop_Param_Type["Max Val"].iloc[0] < 10:
                     val_formatted = (
                         numbers_df[
                             numbers_df["numbers"]
-                            == str(int(data_Rule_Pop_Parameter["Min Val"].iloc[0]))
-                        ]["alpha_numbers"].iloc[0],
+                            == str(int(data_Rule_Pop_Param_Type["Min Val"].iloc[0]))
+                            ]["alpha_numbers"].iloc[0],
                         numbers_df[
                             numbers_df["numbers"]
-                            == str(int(data_Rule_Pop_Parameter["Max Val"].iloc[0]))
-                        ]["alpha_numbers"].iloc[0],
+                            == str(int(data_Rule_Pop_Param_Type["Max Val"].iloc[0]))
+                            ]["alpha_numbers"].iloc[0],
                     )
                 elif (
-                    data_Rule_Pop_Parameter["Max Val"].iloc[0] >= 10
-                    and data_Rule_Pop_Parameter["Min Val"].iloc[0] < 10
+                        data_Rule_Pop_Param_Type["Max Val"].iloc[0] >= 10
+                        and data_Rule_Pop_Param_Type["Min Val"].iloc[0] < 10
                 ):
                     val_formatted = (
                         numbers_df[
                             numbers_df["numbers"]
-                            == str(int(data_Rule_Pop_Parameter["Min Val"].iloc[0]))
-                        ]["alpha_numbers"].iloc[0],
-                        f"{data_Rule_Pop_Parameter['Max Val'].iloc[0]:,}",
+                            == str(int(data_Rule_Pop_Param_Type["Min Val"].iloc[0]))
+                            ]["alpha_numbers"].iloc[0],
+                        f"{data_Rule_Pop_Param_Type['Max Val'].iloc[0]:,}",
                     )
                 else:
                     val_formatted = (
-                        f"{data_Rule_Pop_Parameter['Min Val'].iloc[0]:,}",
-                        f"{data_Rule_Pop_Parameter['Max Val'].iloc[0]:,}",
+                        f"{data_Rule_Pop_Param_Type['Min Val'].iloc[0]:,}",
+                        f"{data_Rule_Pop_Param_Type['Max Val'].iloc[0]:,}",
                     )
-            elif threshold in percentF:
+            elif param_type_value in percentF:
                 val_formatted = (
-                    f"{data_Rule_Pop_Parameter['Min Val'].iloc[0]:.7f}%",
-                    f"{data_Rule_Pop_Parameter['Max Val'].iloc[0]:.7f}%",
+                    f"{data_Rule_Pop_Param_Type['Min Val'].iloc[0]:.7f}%",
+                    f"{data_Rule_Pop_Param_Type['Max Val'].iloc[0]:.7f}%",
                 )
-            elif threshold in decimalF:
+            elif param_type_value in decimalF:
                 val_formatted = (
-                    f"{data_Rule_Pop_Parameter['Min Val'].iloc[0]:.7f}",
-                    f"{data_Rule_Pop_Parameter['Max Val'].iloc[0]:.7f}",
+                    f"{data_Rule_Pop_Param_Type['Min Val'].iloc[0]:.7f}",
+                    f"{data_Rule_Pop_Param_Type['Max Val'].iloc[0]:.7f}",
                 )
             else:
                 val_formatted = (
-                    str(data_Rule_Pop_Parameter["Min Val"].iloc[0]),
-                    str(data_Rule_Pop_Parameter["Max Val"].iloc[0]),
+                    str(data_Rule_Pop_Param_Type["Min Val"].iloc[0]),
+                    str(data_Rule_Pop_Param_Type["Max Val"].iloc[0]),
                 )
 
+
+            # -------------- Phase 2 -------------
             line_six = ""
-            if data_Rule_Pop_Parameter["Num Alerts Extracted"].iloc[0] == 0:
+            if data_Rule_Pop_Param_Type["Num Alerts Extracted"].iloc[0] == 0:
                 pass
             elif temp == 0:
                 line_six = f"Rule breaks were generated solely at a value of {val_formatted[1]}."
             elif temp != 0:
                 line_six = f"Rule breaks were generated for values ranging between {val_formatted[0]} and {val_formatted[1]}."
 
-                # No. of interesting rule breaks in sample population
+            # No. of interesting rule breaks in sample population
             temp = (
-                data_Rule_Pop_Parameter["Num Alerts Sampled"].iloc[0]
-                - data_Rule_Pop_Parameter["Data Quality Alerts"].iloc[0]
+                    data_Rule_Pop_Param_Type["Num Alerts Sampled"].iloc[0]
+                    - data_Rule_Pop_Param_Type["Data Quality Alerts"].iloc[0]
             )
-            temp2 = data_Rule_Pop_Parameter["Interesting Alerts"].iloc[0]
+            temp2 = data_Rule_Pop_Param_Type["Interesting Alerts"].iloc[0]
 
             line_seven = ""
-            if data_Rule_Pop_Parameter["Num Alerts Extracted"].iloc[0] == 0:
+            if data_Rule_Pop_Param_Type["Num Alerts Extracted"].iloc[0] == 0:
                 pass
             elif temp2 == 0 and temp == 1:
                 line_seven = f"Analysis revealed {numbers_df[numbers_df['numbers'] == str(temp2)]['alpha_numbers'].iloc[0]} interesting rule breaks in the population of {numbers_df[numbers_df['numbers'] == str(temp)]['alpha_numbers_cap'].iloc[0]} rule break."
@@ -356,18 +359,18 @@ for x in ruleIDs:
 
             # Placeholder for recommendation rationale
             line_eight = ""
-            if data_Rule_Pop_Parameter["Num Alerts Extracted"].iloc[0] != 0:
+            if data_Rule_Pop_Param_Type["Num Alerts Extracted"].iloc[0] != 0:
                 line_eight = "###INSERT TUNING DECISION###"
 
             # Tuning recommendation
             temp = (
-                data_Rule_Pop_Parameter["Current Threshold"].iloc[0],
-                data_Rule_Pop_Parameter["Recommended Threshold"].iloc[0],
+                data_Rule_Pop_Param_Type["Current Threshold"].iloc[0],
+                data_Rule_Pop_Param_Type["Recommended Threshold"].iloc[0],
             )
 
-            if threshold in currencyF:
+            if param_type_value in currencyF:
                 temp_formatted = (f"${temp[0]:,.2f}", f"${temp[1]:,.2f}")
-            elif threshold in numberF:
+            elif param_type_value in numberF:
                 if temp[0] < 10 and temp[1] < 10:
                     temp_formatted = (
                         numbers_df[numbers_df["numbers"] == str(int(temp[0]))][
@@ -386,40 +389,40 @@ for x in ruleIDs:
                     )
                 else:
                     temp_formatted = (f"{temp[0]:,}", f"{temp[1]:,}")
-            elif threshold in percentF:
+            elif param_type_value in percentF:
                 temp_formatted = (f"{temp[0]:.2f}%", f"{temp[1]:.7f}%")
-            elif threshold in decimalF:
+            elif param_type_value in decimalF:
                 temp_formatted = (f"{temp[0]:.2f}", f"{temp[1]:.7f}")
             else:
                 temp_formatted = (str(temp[0]), str(temp[1]))
 
             line_nine = ""
-            if data_Rule_Pop_Parameter["Num Alerts Extracted"].iloc[0] == 0:
+            if data_Rule_Pop_Param_Type["Num Alerts Extracted"].iloc[0] == 0:
                 pass
             elif (
-                data_Rule_Pop_Parameter["Current Threshold"].iloc[0]
-                == data_Rule_Pop_Parameter["Recommended Threshold"].iloc[0]
+                    data_Rule_Pop_Param_Type["Current Threshold"].iloc[0]
+                    == data_Rule_Pop_Param_Type["Recommended Threshold"].iloc[0]
             ):
-                line_nine = f"Therefore, it is recommended to maintain the {threshold} threshold at {temp_formatted[0]}."
+                line_nine = f"Therefore, it is recommended to maintain the {parameter} threshold at {temp_formatted[0]}."
             elif (
-                data_Rule_Pop_Parameter["Current Threshold"].iloc[0]
-                != data_Rule_Pop_Parameter["Recommended Threshold"].iloc[0]
+                    data_Rule_Pop_Param_Type["Current Threshold"].iloc[0]
+                    != data_Rule_Pop_Param_Type["Recommended Threshold"].iloc[0]
             ):
-                line_nine = f"Therefore, it is recommended to lower the {threshold} threshold from {temp_formatted[0]} to {temp_formatted[1]}."
+                line_nine = f"Therefore, it is recommended to lower the {parameter} threshold from {temp_formatted[0]} to {temp_formatted[1]}."
 
             # Change in effectiveness
             line_ten = ""
             if (
-                data_Rule_Pop_Parameter["Num Alerts Extracted"].iloc[0] == 0
-                or data_Rule_Pop_Parameter["Current Threshold"].iloc[0]
-                == data_Rule_Pop_Parameter["Recommended Threshold"].iloc[0]
+                    data_Rule_Pop_Param_Type["Num Alerts Extracted"].iloc[0] == 0
+                    or data_Rule_Pop_Param_Type["Current Threshold"].iloc[0]
+                    == data_Rule_Pop_Param_Type["Recommended Threshold"].iloc[0]
             ):
                 pass
             elif (
-                data_Rule_Pop_Parameter["Current Threshold"].iloc[0]
-                != data_Rule_Pop_Parameter["Recommended Threshold"].iloc[0]
+                    data_Rule_Pop_Param_Type["Current Threshold"].iloc[0]
+                    != data_Rule_Pop_Param_Type["Recommended Threshold"].iloc[0]
             ):
-                line_ten = f"At the recommended threshold, the effectiveness of the delta population is {data_Rule_Pop_Parameter['Prop Effectiveness'].iloc[0]:.2f}%."
+                line_ten = f"At the recommended threshold, the effectiveness of the delta population is {data_Rule_Pop_Param_Type['Prop Effectiveness'].iloc[0]:.2f}%."
 
             # Conclusion Paragraph --------------------------------------------------------------
             thresholds_changed = []
@@ -442,7 +445,7 @@ for x in ruleIDs:
                     if temp_val < 10:
                         temp_val_formatted = numbers_df[
                             numbers_df["numbers"] == str(int(temp_val))
-                        ]["alpha_numbers"].iloc[0]
+                            ]["alpha_numbers"].iloc[0]
                     else:
                         temp_val_formatted = f"{temp_val:,}"
                 elif temp_param in percentF:
@@ -503,10 +506,10 @@ for x in ruleIDs:
                 line_twelve = f"Adjusting the {thresholds_changed_formatted} to {thresholds_changed_values_formatted} while maintaining the {thresholds_kept_formatted} at {thresholds_kept_values_formatted}."
 
             # Impact on Effectiveness
-            temp_eff = data_Rule_Pop_Parameter["Effectiveness"].iloc[0]
+            temp_eff = data_Rule_Pop_Param_Type["Effectiveness"].iloc[0]
             temp_eff_formatted = f"{temp_eff:.2f}%"
 
-            temp_prop_eff = data_Rule_Pop_Parameter["Prop Effectiveness"].iloc[0]
+            temp_prop_eff = data_Rule_Pop_Param_Type["Prop Effectiveness"].iloc[0]
             temp_prop_eff_formatted = f"{temp_prop_eff:.2f}%"
 
             if temp_prop_eff == 0:
@@ -528,14 +531,14 @@ for x in ruleIDs:
                     pd.DataFrame(
                         [
                             [
-                                data_Rule_Pop_Parameter["Rule ID"].iloc[0],  # Rule ID
-                                data_Rule_Pop_Parameter["Rule Name"].iloc[
+                                data_Rule_Pop_Param_Type["Rule ID"].iloc[0],  # Rule ID
+                                data_Rule_Pop_Param_Type["Rule Name"].iloc[
                                     0
                                 ],  # Rule Name
-                                data_Rule_Pop_Parameter["Population Group"].iloc[
+                                data_Rule_Pop_Param_Type["Population Group"].iloc[
                                     0
                                 ],  # Population group
-                                threshold,  # Threshold tuned
+                                parameter,  # Threshold tuned
                                 line_one
                                 + " "
                                 + line_two
@@ -574,6 +577,7 @@ for x in ruleIDs:
                 ],
                 ignore_index=True,
             )
+
 
 # Export narratives to CSV
 # narratives.to_csv(
@@ -628,7 +632,6 @@ new_heading_style.font.color.rgb = RGBColor(0, 0, 0)
 new_heading_style.font.name = "Times New Roman"
 new_heading_style.font.size = Pt(10)
 new_heading_style.font.bold = True
-
 
 # pop formatting
 # Modify the built-in 'Heading 1' style
@@ -722,7 +725,7 @@ for x in natsorted(ruleIDs):
             temp_values_formatted = [f"{float(value):,.0f}" for value in temp_values]
         elif temp_param in percentF:
             temp_values_formatted = [
-                f"{float(value.strip('%'))/100:.7%}" for value in temp_values
+                f"{float(value.strip('%')) / 100:.7%}" for value in temp_values
             ]
         elif temp_param in decimalF:
             temp_values_formatted = [f"{float(value):.2f}" for value in temp_values]
@@ -760,6 +763,7 @@ for x in natsorted(ruleIDs):
             run.font.name = "Times New Roman"
             run.font.size = Pt(10)
 
+
     # Function to set cell borders
     def set_cell_borders(cell, border_type, sz=6, color="auto"):
         """
@@ -777,6 +781,7 @@ for x in natsorted(ruleIDs):
         element.set(qn("w:val"), "single")
         if color != "auto":
             element.set(qn("w:color"), color)
+
 
     # Apply formatting to the table
     for row in table.rows:
@@ -804,7 +809,7 @@ for x in natsorted(ruleIDs):
     for pop in popGroups:
         narratives_Rule_Pop = narratives_Rule[
             narratives_Rule["Population Group"] == pop
-        ]
+            ]
 
         # ! Chnagelog v1: threshold recommendation formatting
         heading_style_4 = doc.styles["Heading 4"]
@@ -877,7 +882,7 @@ for x in natsorted(ruleIDs):
         for param in params:
             narratives_Rule_Pop_Parameter = narratives_Rule_Pop[
                 narratives_Rule_Pop["Parameter"] == param
-            ]
+                ]
 
             # Add parameter header
             # heading = doc.add_heading(param, level=5)
@@ -941,14 +946,14 @@ for x in natsorted(ruleIDs):
                 if temp_original < 10:
                     temp_original_formatted = numbers_df[
                         numbers_df["numbers"] == str(int(temp_original))
-                    ]["alpha_numbers"].iloc[0]
+                        ]["alpha_numbers"].iloc[0]
                 else:
                     temp_original_formatted = f"{temp_original:,}"
 
                 if temp_lowered < 10:
                     temp_lowered_formatted = numbers_df[
                         numbers_df["numbers"] == str(int(temp_lowered))
-                    ]["alpha_numbers"].iloc[0]
+                        ]["alpha_numbers"].iloc[0]
                 else:
                     temp_lowered_formatted = f"{temp_lowered:,}"
             elif param in percentF:
